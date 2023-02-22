@@ -53,6 +53,6 @@ class RoleController extends Controller
     {
         $role->delete();
 
-        return response()->setStatusCode(HttpResponse::HTTP_NO_CONTENT);
+        return response(null, HttpResponse::HTTP_NO_CONTENT);
     }
 }

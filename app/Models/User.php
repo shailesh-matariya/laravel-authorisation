@@ -37,15 +37,13 @@ class User extends Authenticatable
     protected function permissions(): Attribute
     {
         return Attribute::make(
-            get: fn (string $value) => $this->userPermissions(),
+            get: fn(?string $value) => $this->userPermissions(),
         )->shouldCache();
     }
 
-    public function hasPermission(...$permissions)
+    public function hasPermission($permission)
     {
-        foreach ($permissions as $permission) {
-            $this->permissions->contains();
-        }
+        return in_array($permission, $this->permissions);
     }
 
     // This can be cached, but not in the scope for now
@@ -56,11 +54,16 @@ class User extends Authenticatable
 
         $this->roles->each(function(Role $role) use (&$permissions) {
             $role->permissions->each(function($permission) use (&$permissions) {
-                $permissions[] = $permission;
+                $permissions[] = $permission->value;
             });
         });
 
-        return array_values(array_unique($permissions));
+        return array_unique($permissions);
+    }
+
+    public function assignRoles($roles)
+    {
+        return $this->roles()->sync($roles);
     }
 
 }

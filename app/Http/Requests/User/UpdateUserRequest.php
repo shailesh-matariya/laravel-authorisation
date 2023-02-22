@@ -1,21 +1,21 @@
 <?php
 
-namespace App\Http\Requests\Authorisation\Role;
+namespace App\Http\Requests\User;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateRoleRequest extends FormRequest
+class UpdateUserRequest extends FormRequest
 {
     public function rules(): array
     {
         return [
-            'label' => [
+            'name' => [
                 'required'
             ],
-            'value' => [
+            'email' => [
                 'required',
-                Rule::unique('roles')->whereNot('id', $this->route('role')->id),
+                Rule::unique('users')->whereNot('id', $this->route('user')->id)
             ],
         ];
     }
