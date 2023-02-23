@@ -17,7 +17,8 @@ class UserController extends Controller
 
         return response()->json([
             'status' => true,
-            'users' => $users
+            'users' => $users,
+            'count' => User::count(),
         ]);
     }
 

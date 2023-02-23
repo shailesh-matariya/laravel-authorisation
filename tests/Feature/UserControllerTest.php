@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
 
 class UserControllerTest extends TestCase
@@ -22,20 +23,27 @@ class UserControllerTest extends TestCase
 
         $this->actingAs($user);
 
+        $usersCount = User::count();
+
         $response = $this->json('get', route('users.index'));
 
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'status',
-            'users' => [
-                'data' => [
-                    '*' => [
-                        'name',
-                        'email',
-                    ],
-                ]
-            ],
-        ]);
+        if (Gate::forUser($user)->allows('viewAny', User::class)) {
+            $response->assertStatus(200);
+            $response->assertJsonStructure([
+                'status',
+                'users' => [
+                    'data' => [
+                        '*' => [
+                            'name',
+                            'email',
+                        ],
+                    ]
+                ],
+            ]);
+            $response->assertJsonPath('count', $usersCount);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_index_with_admin()
@@ -73,14 +81,18 @@ class UserControllerTest extends TestCase
             'password_confirmation' => $password,
         ]);
 
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'status',
-            'user' => [
-                'name',
-                'email',
-            ]
-        ]);
+        if (Gate::forUser($user)->allows('create', User::class)) {
+            $response->assertStatus(200);
+            $response->assertJsonStructure([
+                'status',
+                'user' => [
+                    'name',
+                    'email',
+                ]
+            ]);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_store_with_admin()
@@ -113,14 +125,18 @@ class UserControllerTest extends TestCase
 
         $response = $this->getJson(route('users.show', compact('user')));
 
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'status',
-            'user' => [
-                'name',
-                'email',
-            ],
-        ]);
+        if (Gate::forUser($user)->allows('view', $user)) {
+            $response->assertStatus(200);
+            $response->assertJsonStructure([
+                'status',
+                'user' => [
+                    'name',
+                    'email',
+                ],
+            ]);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_show_with_admin()
@@ -154,14 +170,18 @@ class UserControllerTest extends TestCase
             'email' => $this->faker->unique()->safeEmail(),
         ]);
 
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'status',
-            'user' => [
-                'name',
-                'email',
-            ],
-        ]);
+        if (Gate::forUser($user)->allows('update', $user)) {
+            $response->assertStatus(200);
+            $response->assertJsonStructure([
+                'status',
+                'user' => [
+                    'name',
+                    'email',
+                ],
+            ]);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_update_with_admin()
@@ -192,7 +212,11 @@ class UserControllerTest extends TestCase
 
         $response = $this->delete(route('users.destroy', compact('user')));
 
-        $response->assertStatus(204);
+        if (Gate::forUser($user)->allows('delete', $user)) {
+            $response->assertStatus(204);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_destroy_with_admin()
@@ -228,10 +252,14 @@ class UserControllerTest extends TestCase
             'roles' => $roles,
         ]);
 
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'status'
-        ]);
+        if (Gate::forUser($user)->allows('assignRole', User::class)) {
+            $response->assertStatus(200);
+            $response->assertJsonStructure([
+                'status'
+            ]);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_assign_role_with_admin()

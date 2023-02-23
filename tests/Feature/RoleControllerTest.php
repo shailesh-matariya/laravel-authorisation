@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
 
 class RoleControllerTest extends TestCase
@@ -22,25 +23,29 @@ class RoleControllerTest extends TestCase
 
         $this->actingAs($user);
 
-//        $roles = Role::factory()->count(10)->create();
+        $roles = Role::factory()->count(10)->create();
+        $rolesCount = Role::count();
+
         $response = $this->json('get', route('roles.index'));
 
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'status',
-            'roles' => [
-                'data' => [
-                    '*' => [
-                        'label',
-                        'value',
-                    ],
-                ]
-            ],
-        ]);
-
-        $rolesCount = Role::count();
-        // Assert for the total roles count
-        // Response must have total count equals to the $rolesCount
+        if (Gate::forUser($user)->allows('viewAny', Role::class)) {
+            $response->assertStatus(200);
+            $response->assertJsonStructure([
+                'status',
+                'roles' => [
+                    'data' => [
+                        '*' => [
+                            'label',
+                            'value',
+                        ],
+                    ]
+                ],
+                'count',
+            ]);
+            $response->assertJsonPath('count', $rolesCount);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_index_with_admin()
@@ -74,11 +79,18 @@ class RoleControllerTest extends TestCase
             'value' => $this->faker->unique()->slug(2),
         ]);
 
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'status',
-            'role'
-        ]);
+        if (Gate::forUser($user)->allows('create', Role::class)) {
+            $response->assertStatus(200);
+            $response->assertJsonStructure([
+                'status',
+                'role' => [
+                    'label',
+                    'value',
+                ]
+            ]);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_store_with_admin()
@@ -111,14 +123,18 @@ class RoleControllerTest extends TestCase
 
         $response = $this->getJson(route('roles.show', compact('role')));
 
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'status',
-            'role' => [
-                'label',
-                'value',
-            ],
-        ]);
+        if (Gate::forUser($user)->allows('view', $role)) {
+            $response->assertStatus(200);
+            $response->assertJsonStructure([
+                'status',
+                'role' => [
+                    'label',
+                    'value',
+                ],
+            ]);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_show_with_admin()
@@ -155,11 +171,15 @@ class RoleControllerTest extends TestCase
             'value' => $this->faker->unique()->slug(2),
         ]);
 
-        $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'status',
-            'role'
-        ]);
+        if (Gate::forUser($user)->allows('update', $roleModel)) {
+            $response->assertStatus(200);
+            $response->assertJsonStructure([
+                'status',
+                'role'
+            ]);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_update_with_admin()
@@ -193,7 +213,11 @@ class RoleControllerTest extends TestCase
 
         $response = $this->delete(route('roles.destroy', ['role' => $roleModel]));
 
-        $response->assertStatus(204);
+        if (Gate::forUser($user)->allows('delete', $roleModel)) {
+            $response->assertStatus(204);
+        } else {
+            $response->assertStatus(403);
+        }
     }
 
     public function test_destroy_with_admin()

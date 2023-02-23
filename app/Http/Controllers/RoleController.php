@@ -16,7 +16,8 @@ class RoleController extends Controller
 
         return response()->json([
             'status' => true,
-            'roles' => $roles
+            'roles' => $roles,
+            'count' => Role::count(),
         ]);
     }
 
