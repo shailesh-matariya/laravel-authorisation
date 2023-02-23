@@ -53,6 +53,8 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        $user->roles()->detach();
+
         $user->delete();
 
         return response(null, HttpResponse::HTTP_NO_CONTENT);

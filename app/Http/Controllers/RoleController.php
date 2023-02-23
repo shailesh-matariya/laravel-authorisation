@@ -52,6 +52,10 @@ class RoleController extends Controller
 
     public function destroy(Role $role)
     {
+        $role->permissions()->detach();
+
+        $role->users()->detach();
+
         $role->delete();
 
         return response(null, HttpResponse::HTTP_NO_CONTENT);
